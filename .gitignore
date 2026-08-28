@@ -1,1 +1,4 @@
 kilter_data.sqlite
+.venv/
+__pycache__/
+*.pyc
