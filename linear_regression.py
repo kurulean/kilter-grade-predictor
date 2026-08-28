@@ -65,7 +65,7 @@ grade_mae = results.groupby("grade")["error"].mean()
 print(grade_mae)
 
 
-# Create a table showing the numeric difficulty for each V-grade
+# create a table showing the numeric difficulty for each v-grade
 grade_mapping = (
     df[["difficulty_numeric", "boulder_grade"]]
     .dropna()
@@ -73,7 +73,7 @@ grade_mapping = (
     .median()
 )
 
-# Convert each predicted difficulty into the nearest V-grade
+# convert each predicted difficulty into the nearest V-grade
 def numeric_to_grade(value):
     closest_grade = (grade_mapping - value).abs().idxmin()
     return closest_grade
@@ -87,3 +87,32 @@ results = pd.DataFrame({
 })
 
 print(results)
+
+# exact grade accuracy
+correct = (results["actual_grade"] == results["predicted_grade"]).mean()
+
+print("Exact accuracy:", correct)
+
+
+# convert grades like "6c/V5" -> 5
+actual = (
+    results["actual_grade"]
+    .str.split("/")
+    .str[-1]
+    .str.replace("V", "")
+    .astype(int)
+)
+
+predicted = (
+    results["predicted_grade"]
+    .str.split("/")
+    .str[-1]
+    .str.replace("V", "")
+    .astype(int)
+)
+
+
+# Accuracy within one V-grade
+within_one = (abs(actual - predicted) <= 1).mean()
+
+print("Within 1 grade:", within_one)
