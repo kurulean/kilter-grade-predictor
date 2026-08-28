@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error
 
+# create a connection to sqlite database
 conn = sqlite3.connect("kilter_data.sqlite")
 
 # load data from the SQL query into a DataFrame
@@ -47,3 +48,42 @@ mae = mean_absolute_error(y_test, predictions)
 print("MAE:", mae)
 print("Coefficients:", model.coef_)
 print("Intercept:", model.intercept_)
+
+
+# calculate the absolute error of each v-grade
+errors = abs(y_test - predictions)
+
+grades = df.loc[y_test.index, "boulder_grade"]
+
+results = pd.DataFrame({
+    "grade": grades,
+    "error": errors
+})
+
+grade_mae = results.groupby("grade")["error"].mean()
+
+print(grade_mae)
+
+
+# Create a table showing the numeric difficulty for each V-grade
+grade_mapping = (
+    df[["difficulty_numeric", "boulder_grade"]]
+    .dropna()
+    .groupby("boulder_grade")["difficulty_numeric"]
+    .median()
+)
+
+# Convert each predicted difficulty into the nearest V-grade
+def numeric_to_grade(value):
+    closest_grade = (grade_mapping - value).abs().idxmin()
+    return closest_grade
+
+predicted_grades = [numeric_to_grade(value) for value in predictions]
+actual_grades = df.loc[y_test.index, "boulder_grade"]
+
+results = pd.DataFrame({
+    "actual_grade": actual_grades,
+    "predicted_grade": predicted_grades
+})
+
+print(results)
