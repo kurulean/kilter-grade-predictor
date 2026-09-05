@@ -7,9 +7,12 @@ from hold_mapping import load_placement_lookup, frames_to_cells
 # constants
 DB = "data/kilter_data.sqlite"
 LAYOUT_ID = 1
-MIN_ASCENTS = 2
+MIN_ASCENTS_TRAIN = 2
+MIN_ASCENTS_TEST = 3
 ROLE_TO_CHANNEL = {12: 0, 13: 1, 14: 2, 15: 3} # start, middle, finish, foot
 NUM_CHANNELS = 4
+MAX_GRADE = 13 # drop v14, too few samples to learn from
+MAX_ANGLE = 70.0 # highest board angle, used to scale angle to 0 to 1
 
 # turn a resolved hold list into one grid
 def build_image(cells):
@@ -34,12 +37,17 @@ for split_name, table in [("train", "kilter_train"), ("val", "kilter_val"), ("te
     lookup = load_placement_lookup(conn, layout_id=LAYOUT_ID)
     query = "SELECT frames, angle, boulder_grade, ascensionist_count FROM {} WHERE layout_id=?".format(table)
     for frames, angle, grade, ascents in conn.execute(query, (LAYOUT_ID,)):
-        if split_name == "train" and ascents <= MIN_ASCENTS:
+        if split_name == "train" and ascents <= MIN_ASCENTS_TRAIN:
+            continue
+        if split_name == "test" and ascents <= MIN_ASCENTS_TEST:
+            continue
+        grade_num = parse_grade(grade)
+        if grade_num > MAX_GRADE:
             continue
         cells = frames_to_cells(frames, lookup)
         images.append(build_image(cells))
-        angles.append(angle)
-        labels.append(parse_grade(grade))
+        angles.append(angle / MAX_ANGLE)
+        labels.append(grade_num)
         splits.append(split_name)
     conn.close()
 
