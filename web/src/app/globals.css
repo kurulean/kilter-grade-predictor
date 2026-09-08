@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #131313;
+  --surface: #20232a;
+  --edge: #2a2b2e;
+  --edge-strong: #3a3b3e;
+  --ink: #edf2ef;
+  --ink-muted: #9a9ba0;
+  --ink-faint: #6b6c70;
+  --accent: #4fb8bf;
+  --accent-ink: #7fd4da;
+  --start: #66b678;
+  --middle: #5fbdfc;
+  --finish: #ff545a;
+  --foot: #fbbf24;
+  --dot-empty: #3a3b3e;
+
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+code {
+  font-family: var(--font-mono);
+}
+
+/* reusable hover/persistent glow, colored per-element via the --glow-color
+   custom property set inline (Tailwind can't see a dynamically-interpolated
+   arbitrary-value class at build time, so a plain CSS rule + custom
+   property is what actually lets each button/hold glow its own color) */
+.glow-btn {
+  transition: box-shadow 150ms ease;
+}
+.glow-btn:hover {
+  box-shadow: 0 0 14px 1px var(--glow-color, var(--accent));
+}
+
+.hold-glow {
+  transition: filter 120ms ease;
+}
+.hold-glow-selected {
+  filter: drop-shadow(0 0 5px var(--glow-color)) drop-shadow(0 0 2px var(--glow-color));
+}
+.group:hover .hold-glow-hover {
+  filter: drop-shadow(0 0 5px var(--glow-color)) drop-shadow(0 0 2px var(--glow-color));
+}
