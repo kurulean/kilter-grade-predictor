@@ -30,10 +30,7 @@ export default function Controls({
   onPredict,
 }: ControlsProps) {
   return (
-    <div
-      className="flex flex-wrap items-center gap-3.5 rounded-[10px] border p-4"
-      style={{ background: "var(--surface)", borderColor: "var(--edge)" }}
-    >
+    <div className="flex flex-wrap items-center gap-3.5">
       <div className="flex gap-1.5">
         {ROLES.map((role) => (
           <button

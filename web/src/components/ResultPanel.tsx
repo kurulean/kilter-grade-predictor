@@ -2,6 +2,12 @@
 
 export interface PredictionResult {
   probs: number[];
+  // a lightweight gate model rejects climbs it has no real basis to judge
+  // (too few holds, or a gap far beyond anything in the training data) --
+  // see generate_gate_dataset.py. probs is still populated when this is
+  // false, but it's an unsupported extrapolation, not a real prediction.
+  valid: boolean;
+  validConfidence: number;
   exampleName: string | null;
   trueGrade: number | null;
 }
@@ -12,37 +18,49 @@ interface ResultPanelProps {
 
 export default function ResultPanel({ result }: ResultPanelProps) {
   return (
-    <div
-      className="flex w-[460px] flex-none flex-col gap-3.5 rounded-[10px] border p-4"
-      style={{ background: "var(--surface)", borderColor: "var(--edge)" }}
-    >
+    <div className="mt-3 flex w-[460px] flex-none flex-col gap-3.5">
       {!result ? (
         <p className="text-sm italic" style={{ color: "var(--ink-faint)" }}>
           place some holds, then click &quot;predict grade&quot;
         </p>
+      ) : !result.valid ? (
+        <InvalidClimb result={result} />
       ) : (
-        <div className="flex gap-4">
-          <div className="flex w-[150px] flex-none flex-col gap-3.5">
-            <Verdict result={result} />
-            {result.exampleName && (
-              <div className="flex flex-col gap-1 font-mono text-xs" style={{ color: "var(--ink-muted)" }}>
-                <span>
-                  example: <b style={{ fontSize: 13, color: "var(--ink)" }}>{result.exampleName}</b>
-                </span>
-                <span>
-                  true grade: <b style={{ fontSize: 13, color: "var(--ink)" }}>V{result.trueGrade}</b>
-                </span>
-              </div>
-            )}
-          </div>
-          {/* GRADE_SCALE_TOP_OFFSET: bumps the bar chart down so it starts
-              lower than the verdict beside it, instead of top-aligned --
-              tweak this value directly to move it further up/down */}
-          <div className="min-w-0 flex-1 pt-8">
-            <Bars probs={result.probs} />
-          </div>
+        <div className="flex flex-col gap-3.5">
+          <Verdict result={result} />
+          {result.exampleName && (
+            <div className="flex gap-4 font-mono text-xs" style={{ color: "var(--ink-muted)" }}>
+              <span>
+                example: <b style={{ fontSize: 13, color: "var(--ink)" }}>{result.exampleName}</b>
+              </span>
+              <span>
+                true grade: <b style={{ fontSize: 13, color: "var(--ink)" }}>V{result.trueGrade}</b>
+              </span>
+            </div>
+          )}
+          <Bars probs={result.probs} />
         </div>
       )}
+    </div>
+  );
+}
+
+function InvalidClimb({ result }: { result: PredictionResult }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span
+        className="font-sans text-2xl font-bold leading-none"
+        style={{ fontFamily: "var(--font-display)", color: "var(--finish)" }}
+      >
+        not climbable
+      </span>
+      <span className="max-w-[70ch] text-sm leading-snug" style={{ color: "var(--ink-muted)" }}>
+        this hold selection doesn&apos;t look like anything in the training data -- too few holds, or a gap between
+        holds far beyond any real climb. the grade model has no real basis to judge it, so no grade is shown.
+      </span>
+      <span className="font-mono text-xs" style={{ color: "var(--ink-faint)" }}>
+        {(result.validConfidence * 100).toFixed(1)}% confidence in that call
+      </span>
     </div>
   );
 }

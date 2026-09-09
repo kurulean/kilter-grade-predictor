@@ -4,9 +4,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from model import KilterCNN
+from model import GateCNN, KilterCNN
 
 MODEL_PATH = "models/kilter_cnn.pt"
+GATE_MODEL_PATH = "models/kilter_gate.pt"
 MAX_ANGLE = 70.0
 ROLE_TO_CHANNEL = {12: 0, 13: 1, 14: 2, 15: 3}  # start, middle, finish, foot
 
@@ -14,6 +15,14 @@ ROLE_TO_CHANNEL = {12: 0, 13: 1, 14: 2, 15: 3}  # start, middle, finish, foot
 model = KilterCNN()
 model.load_state_dict(torch.load(MODEL_PATH, map_location="cpu"))
 model.eval()
+
+# runs ahead of the grade model -- rejects climbs the grade model has no
+# real basis for judging (e.g. too few holds, or a gap far beyond anything
+# in the training data) instead of letting it silently extrapolate a grade
+# with no support for it. see generate_gate_dataset.py for why this exists.
+gate_model = GateCNN()
+gate_model.load_state_dict(torch.load(GATE_MODEL_PATH, map_location="cpu"))
+gate_model.eval()
 
 app = FastAPI()
 
@@ -36,6 +45,8 @@ class PredictRequest(BaseModel):
 
 class PredictResponse(BaseModel):
     probs: list[float]
+    valid: bool
+    valid_confidence: float  # gate's own confidence in that valid/invalid call
 
 
 @app.post("/predict", response_model=PredictResponse)
@@ -49,10 +60,18 @@ def predict(req: PredictRequest):
     angle_tensor = torch.tensor([req.angle / MAX_ANGLE], dtype=torch.float32)
 
     with torch.no_grad():
+        gate_probs = F.softmax(gate_model(image, angle_tensor), dim=1)[0]
+        valid = bool(gate_probs[1] >= gate_probs[0])
+        valid_confidence = gate_probs[1 if valid else 0].item()
+
+        # still run the grade model either way -- cheap, and the frontend
+        # can choose whether to show a rejected climb's number at all. what
+        # it must not do is present that number with the same confidence as
+        # a climb the gate actually accepted.
         logits = model(image, angle_tensor)
         probs = F.softmax(logits, dim=1)[0].tolist()
 
-    return {"probs": probs}
+    return {"probs": probs, "valid": valid, "valid_confidence": valid_confidence}
 
 
 if __name__ == "__main__":

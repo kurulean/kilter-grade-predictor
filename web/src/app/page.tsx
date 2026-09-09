@@ -36,9 +36,11 @@ export default function Home() {
     setPredicting(true);
     setError(null);
     try {
-      const probs = await predictGrade(cells, angleVal);
+      const { probs, valid, validConfidence } = await predictGrade(cells, angleVal);
       setResult({
         probs,
+        valid,
+        validConfidence,
         exampleName: exampleRef.current?.name ?? null,
         trueGrade: exampleRef.current?.trueGrade ?? null,
       });
@@ -91,7 +93,7 @@ export default function Home() {
   const holdCount = Object.keys(holdState).length;
 
   return (
-    <div className="mx-auto flex max-w-[1200px] flex-col gap-5 px-5 py-8 pb-16">
+    <div className="mx-auto flex max-w-[1320px] flex-col gap-5 px-5 pt-25 pb-16">
       <div>
         <h1
           className="text-[clamp(28px,5vw,40px)] leading-[1.05]"
@@ -116,7 +118,7 @@ export default function Home() {
       />
 
       <div className="flex flex-wrap items-start gap-4.5">
-        <figure className="-mt-4 mb-0 min-w-[280px] flex-[1_1_500px]">
+        <figure className="-mt-4 mb-0 min-w-[280px] flex-[1_1_700px]">
           <PhotoBoard holdState={holdState} onToggleHold={toggleHold} currentRole={currentRole} />
           <figcaption className="pt-2 text-center font-mono text-xs" style={{ color: "var(--ink-faint)" }}>
             {holdCount} hold{holdCount === 1 ? "" : "s"} placed

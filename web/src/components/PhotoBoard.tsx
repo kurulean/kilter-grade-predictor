@@ -15,6 +15,12 @@ interface PhotoBoardProps {
   currentRole: Role;
 }
 
+// board.png's real hold content spans roughly these rows (out of 458) --
+// see the comment on the svg's viewBox below. a little padding is kept
+// on each side so holds near the edges don't get visually clipped.
+const CROP_TOP = 56;
+const CROP_BOTTOM = 396;
+
 const ROLE_COLOR: Record<Role, string> = {
   start: "var(--start)",
   middle: "var(--middle)",
@@ -45,7 +51,13 @@ export default function PhotoBoard({ holdState, onToggleHold, currentRole }: Pho
 
   return (
     <svg
-      viewBox="0 0 458 458"
+      // board.png is a 458x458 canvas, but the actual hold content only
+      // spans rows ~66-385 -- the rest is transparent padding baked into
+      // the source photo. cropping the viewBox (not the image or hold
+      // coordinates, which stay at their real 0-458 positions) trims that
+      // dead space from the rendered box instead of leaving a visible gap
+      // above/below the wall.
+      viewBox={`0 ${CROP_TOP} 458 ${CROP_BOTTOM - CROP_TOP}`}
       role="img"
       aria-label="The real Kilter board. Click a hold to add it to your climb."
       className="w-full h-auto rounded-[10px]"
