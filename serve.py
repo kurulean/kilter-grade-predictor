@@ -1,3 +1,5 @@
+import os
+
 import torch
 import torch.nn.functional as F
 from fastapi import FastAPI
@@ -26,12 +28,19 @@ gate_model.eval()
 
 app = FastAPI()
 
-# the frontend runs on a different port during dev, browsers block that
-# by default unless the server explicitly allows it -- matched by pattern
-# rather than a fixed port, since next dev picks a different one whenever
-# 3000 is already taken
+# the frontend runs on a different origin than this server, browsers block
+# that by default unless the server explicitly allows it. local dev always
+# gets any localhost port (next dev picks a different one whenever 3000 is
+# taken); the deployed frontend's real origin (e.g. https://your-app.vercel.app)
+# comes from an env var set on whatever host runs this server, rather than
+# being hardcoded here, so pointing this at a new frontend deploy is a
+# config change, not a code change + redeploy.
+DEPLOYED_ORIGIN = os.environ.get("ALLOWED_ORIGIN")  # e.g. "https://your-app.vercel.app"
+allow_origins = [DEPLOYED_ORIGIN] if DEPLOYED_ORIGIN else []
+
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=allow_origins,
     allow_origin_regex=r"http://localhost:\d+",
     allow_methods=["POST"],
     allow_headers=["*"],
@@ -77,4 +86,8 @@ def predict(req: PredictRequest):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # hosting platforms (Railway, Render, etc.) assign a port at runtime and
+    # expect the app to bind to it via $PORT -- 8000 stays the default for
+    # local dev, where nothing sets that variable
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
